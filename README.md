@@ -85,114 +85,8 @@
 - **白名单管理**: IP白名单配置
 - **日志管理**: 日志记录
 
-## 🚨 攻击严重程度划分
 
-系统根据攻击类型、危害程度和检测模式自动将攻击分为四个严重程度等级：
 
-### 严重程度等级
-
-| 等级 | 英文标识 | 中文名称 | 颜色标识 | 说明 |
-|------|----------|----------|----------|------|
-| **严重** | `critical` | 严重 | 红色 | 最高危险级别，可能导致系统完全被攻破 |
-| **高** | `high` | 高 | 红色 | 高风险攻击，可能造成严重安全威胁 |
-| **中** | `medium` | 中 | 橙色 | 中等风险，需要关注但危害相对较小 |
-| **低** | `low` | 低 | 绿色 | 低风险，通常为测试或误报 |
-
-### 攻击类型与严重程度映射
-
-#### 🔴 严重 (Critical)
-- **SQL注入攻击**: 所有SQL注入攻击都被标记为严重级别
-  - 原因：SQL注入可直接访问和操作数据库，危害极大
-
-#### 🟠 高 (High)
-- **XSS攻击**: 反射型和存储型XSS攻击
-  - 原因：可执行恶意脚本，窃取用户信息或进行会话劫持
-- **文件上传攻击**: 上传危险文件类型或包含恶意内容
-  - 原因：可能上传Webshell或恶意脚本，获得服务器控制权
-- **暴力破解攻击**: 短时间内大量失败登录尝试
-  - 原因：可能通过暴力破解获得系统访问权限
-
-#### 🟡 中 (Medium)
-- **CSRF攻击**: 跨站请求伪造攻击
-  - 原因：可能执行非授权操作，但需要用户配合
-- **路径遍历攻击**: 尝试访问系统敏感文件
-  - 原因：可能泄露敏感信息，但通常不会直接执行代码
-
-#### 🟢 低 (Low)
-- **安全测试**: 通过漏洞测试页面进行的测试
-  - 原因：属于授权测试，风险可控
-- **误报**: 系统误判的正常请求
-  - 原因：检测规则过于严格导致的误判
-
-### 自动处理机制
-
-#### 严重和高风险攻击
-- **自动封禁IP**: 检测到严重或高风险攻击时，系统会自动将攻击IP加入封禁列表
-- **立即记录**: 所有攻击都会被详细记录到流量日志中
-- **实时告警**: 在仪表盘中实时显示攻击统计和趋势
-
-#### 中等和低风险攻击
-- **记录日志**: 记录攻击详情但不自动封禁IP
-- **统计分析**: 纳入攻击统计，用于趋势分析
-- **人工审核**: 管理员可手动决定是否封禁相关IP
-
-### 严重程度判断逻辑
-
-```python
-# 系统内部判断逻辑示例
-if attack_type == 'sql_injection':
-    severity = 'critical'  # SQL注入始终为严重级别
-elif attack_type == 'xss':
-    severity = 'high'      # XSS攻击为高级别
-elif attack_type == 'file_upload':
-    severity = 'high'      # 危险文件上传为高级别
-elif attack_type == 'brute_force':
-    severity = 'high'      # 暴力破解为高级别
-elif is_test_request:
-    severity = 'low'       # 测试请求为低级别
-else:
-    severity = 'medium'    # 其他攻击为中级别
-```
-
-### 严重程度统计
-
-系统提供以下严重程度统计功能：
-- **仪表盘展示**: 在主页显示各严重程度的攻击数量分布
-- **趋势分析**: 按严重程度分析攻击趋势变化
-- **日志筛选**: 可按严重程度筛选查看攻击日志
-- **报表导出**: 支持按严重程度导出攻击统计报表
-
-## 🏗 系统架构
-
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   前端 (Vue.js)  │    │   后端 (Django)  │    │   数据库 (MySQL) │
-│                 │    │                 │    │                 │
-│  ┌───────────┐  │    │  ┌───────────┐  │    │  ┌───────────┐  │
-│  │ 仪表盘    │  │◄──►│  │ API接口   │  │◄──►│  │ 流量日志  │  │
-│  └───────────┘  │    │  └───────────┘  │    │  └───────────┘  │
-│  ┌───────────┐  │    │  ┌───────────┐  │    │  ┌───────────┐  │
-│  │ 日志管理  │  │◄──►│  │ 业务逻辑  │  │◄──►│  │ 封禁IP    │  │
-│  └───────────┘  │    │  └───────────┘  │    │  └───────────┘  │
-│  ┌───────────┐  │    │  ┌───────────┐  │    │  ┌───────────┐  │
-│  │ 漏洞测试  │  │◄──►│  │ 中间件    │  │◄──►│  │ 用户信息  │  │
-│  └───────────┘  │    │  └───────────┘  │    │  └───────────┘  │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-```
-
-### 核心模块
-
-#### 后端模块
-- **models.py**: 数据模型定义
-- **views.py**: API视图和业务逻辑
-- **middleware.py**: 流量检测中间件
-- **urls.py**: URL路由配置
-
-#### 前端模块
-- **Dashboard.vue**: 主仪表盘
-- **Logs.vue**: 日志管理页面
-- **BlockedIPs.vue**: IP封禁管理
-- **vulnerability/**: 漏洞测试模块
 
 ## 🚀 安装部署
 
@@ -225,22 +119,6 @@ cd myproject
 pip install -r requirements.txt
 ```
 
-#### 数据库配置
-```bash
-# 创建数据库
-mysql -u root -p
-CREATE DATABASE malicious_traffic_inspection CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
-# 执行迁移
-python manage.py makemigrations
-python manage.py migrate
-
-# 创建超级用户
-python manage.py createsuperuser
-
-# 创建测试数据
-python create_test_data.py
-```
 
 #### 启动后端服务
 ```bash
@@ -255,82 +133,12 @@ cd my-vue-project
 npm install
 ```
 
-#### 配置环境变量
-创建 `.env` 文件：
-```env
-VUE_APP_API_BASE_URL=http://localhost:8000
-```
-
 #### 启动前端服务
 ```bash
 npm run serve
 ```
 
-### 4. 访问系统
-- 前端地址: http://localhost:8080
-- 后端API: http://localhost:8000
-- 管理后台: http://localhost:8000/admin
 
-## ⚙️ 配置说明
-
-### 数据库配置
-在 `myproject/settings.py` 中配置数据库连接：
-
-```python
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'malicious_traffic_inspection',
-        'USER': 'root',
-        'PASSWORD': 'your_password',
-        'HOST': 'localhost',
-        'PORT': '3306',
-        'OPTIONS': {
-            'charset': 'utf8mb4',
-        },
-    }
-}
-```
-
-### 时区配置
-系统已配置为中国时区（UTC+8），所有时间统计都按中国时间计算：
-
-```python
-TIME_ZONE = 'Asia/Shanghai'
-LANGUAGE_CODE = 'zh-hans'
-```
-
-### 安全配置
-- JWT令牌有效期：60分钟
-- 刷新令牌有效期：7天
-- CORS已配置允许跨域请求
-- CSRF保护已启用
-
-## 📚 API文档
-
-### 认证接口
-- `POST /api/auth/login/` - 用户登录
-- `POST /api/auth/logout/` - 用户登出
-
-### 流量统计接口
-- `GET /api/traffic/stats/` - 获取流量统计
-- `GET /api/traffic/logs/` - 获取流量日志
-
-### IP管理接口
-- `GET /api/blocked-ips/` - 获取封禁IP列表
-- `POST /api/blocked-ips/` - 添加封禁IP
-- `PUT /api/blocked-ips/{id}/` - 更新封禁IP
-- `DELETE /api/blocked-ips/{id}/` - 删除封禁IP
-
-### 漏洞测试接口
-- `POST /api/test/xss/` - XSS测试
-- `POST /api/test/sql-injection/` - SQL注入测试
-- `POST /api/test/file-upload/` - 文件上传测试
-
-### 系统配置接口
-- `GET /api/config/` - 获取系统配置
-- `PUT /api/config/` - 更新系统配置
-- `POST /api/defense/control/` - 防御控制
 
 ## 📖 使用指南
 
@@ -394,37 +202,10 @@ LANGUAGE_CODE = 'zh-hans'
 - 文件上传安全检查
 - IP白名单机制
 
-### 安全建议
-1. 生产环境请修改默认密钥
-2. 启用HTTPS
-3. 定期更新依赖包
-4. 监控系统日志
-5. 定期备份数据
 
-### 漏洞测试警告
-⚠️ **重要提醒**：本系统包含漏洞测试功能，仅用于：
-- 安全研究和教育
-- 授权渗透测试
-- 系统安全评估
 
 请勿用于非法用途！
 
-## ❓ 常见问题
-
-### Q: 如何修改数据库配置？
-A: 编辑 `myproject/settings.py` 文件中的 `DATABASES` 配置。
-
-### Q: 如何添加新的攻击检测规则？
-A: 在 `middleware.py` 中的 `TrafficInspectionMiddleware` 类中添加检测逻辑。
-
-### Q: 如何自定义前端主题？
-A: 修改 `my-vue-project/src/assets/` 目录下的样式文件。
-
-### Q: 如何备份数据？
-A: 使用 `python manage.py dumpdata` 命令导出数据。
-
-### Q: 系统支持哪些攻击类型？
-A: 目前支持XSS、SQL注入、文件上传、CSRF、暴力破解等攻击类型。
 
 
 ## 📄 许可证
